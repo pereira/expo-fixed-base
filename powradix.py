@@ -1,4 +1,4 @@
-from gmpy2 import mpz, xmpz, mpz_urandomb, random_state
+from gmpy2 import mpz, xmpz, mpz_urandomb, powmod, random_state
 from timeit import timeit
 
 # Number of exponentiations to be computed in a single basis
@@ -20,6 +20,7 @@ e_list = [xmpz(mpz_urandomb(seed, e_size)) for i in range(n)]
 
 
 # Basic quare and multiply, precomputing squares, and taking advantage of iterations on xmpz
+# It is equivalent to PowRadix for k=1 but runs slightly faster
 class PowRadix2:
     def __init__(self, basis):
         squares = []
@@ -52,7 +53,7 @@ class PowRadix:
         running_basis = row_basis
         for _ in range(self.table_length):
             row = [1]
-            for j in range(1, 2 ** k):
+            for j in range(1, 2**k):
                 row.append(running_basis)
                 running_basis = running_basis * row_basis % p
             table.append(row)
@@ -62,7 +63,7 @@ class PowRadix:
     def pow(self, e):
         y = mpz(1)
         for i in range(self.table_length):
-            e_slice = e[i * self.k: (i + 1) * self.k]
+            e_slice = e[i * self.k: (i+1) * self.k]
             y = y * self.table[i][e_slice] % p
         return y
 
@@ -79,7 +80,7 @@ class PowRadix:
 
 
 # Testing and initializing before benchmarks
-yp = [pow(g, e, p) for e in e_list]
+yp = [powmod(g, e, p) for e in e_list]
 
 g_radix_2 = PowRadix2(g)
 y_radix_2 = [g_radix_2.pow(e) for e in e_list]
@@ -91,7 +92,7 @@ assert(yp == y_radix)
 
 # Benchmarks
 iterations = 10
-t1 = timeit('[pow(g, e, p) for e in e_list]', globals=globals(), number=iterations) * 1000 / iterations
+t1 = timeit('[powmod(g, e, p) for e in e_list]', globals=globals(), number=iterations) * 1000 / iterations
 print("Computing", n, "exponentiations with gmpy2: ", t1, "ms.")
 
 t2 = timeit('PowRadix(g,n=n)', globals=globals(), number=iterations) * 1000 / iterations
